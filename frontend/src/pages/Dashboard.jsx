@@ -1,207 +1,193 @@
 // =============================================
-// DASHBOARD PAGE - EXECUTIVE REFACTOR
+// LEARNER DASHBOARD
 // =============================================
-import { useEffect, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, Target, Shield, Zap, Clock, Activity, BarChart3, ChevronRight, ShieldCheck } from 'lucide-react';
+import {
+  GraduationCap, ClipboardCheck, FlaskConical, TrendingUp,
+  ShieldAlert, Clock, ChevronRight, ArrowRight,
+} from 'lucide-react';
+import { SectionHeader, ProgressBar, RiskBadge, EmptyState } from '../components/ui/index.jsx';
 import { StatsCard } from '../components/dashboard/StatsCard.jsx';
-import { SeverityBadge } from '../components/phishing/SeverityBadge.jsx';
-import { EmptyState } from '../components/ui/index.jsx';
-import { PhishingService, CampaignService } from '../services/phishing.service.js';
-import { formatDate } from '../utils/helpers.js';
+import { TRAINING_MODULES } from '../data/trainingModules.js';
+import { resolveIcon } from '../utils/iconMap.js';
+import {
+  seedDefaults, getModuleProgress, moduleStatus, getActivity, getAwarenessSnapshot,
+} from '../utils/progressStore.js';
+
+const STATUS_META = {
+  completed: { label: 'Completed', color: 'text-emerald-600' },
+  in_progress: { label: 'In Progress', color: 'text-amber-600' },
+  not_started: { label: 'Not Started', color: 'text-tx-muted' },
+};
+
+function timeAgo(iso) {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const hours = Math.floor(diffMs / 3600000);
+  if (hours < 1) return 'Just now';
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
 
 export default function Dashboard() {
-  const [stats, setStats] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [campaigns, setCampaigns] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [snapshot, setSnapshot] = useState(null);
+  const [moduleProgress, setModuleProgress] = useState({});
+  const [activity, setActivity] = useState([]);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const [statsRes, historyRes, campaignsRes] = await Promise.all([
-          PhishingService.getStats(),
-          PhishingService.getHistory(),
-          CampaignService.getAllCampaigns(),
-        ]);
-        setStats(statsRes.data);
-        setHistory(historyRes.data?.slice(0, 5) || []);
-        setCampaigns(campaignsRes.data?.slice(0, 3) || []);
-      } catch (_) {
-        // Graceful degradation
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+    seedDefaults();
+    setSnapshot(getAwarenessSnapshot());
+    setModuleProgress(getModuleProgress());
+    setActivity(getActivity().slice(0, 3));
   }, []);
 
+  const nextModule = useMemo(() => {
+    return TRAINING_MODULES.find((m) => {
+      const percent = moduleProgress[m.id]?.percent ?? 0;
+      return percent > 0 && percent < 100;
+    }) || TRAINING_MODULES.find((m) => (moduleProgress[m.id]?.percent ?? 0) === 0);
+  }, [moduleProgress]);
+
+  if (!snapshot) return null;
+
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-      
-      {/* 1. Hero / Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-extrabold text-tx-primary tracking-tighter sm:text-4xl">
-            Command Center
-          </h1>
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <p className="text-tx-muted font-medium text-sm tracking-tight">AI Simulation Engine Active</p>
-          </div>
+    <div className="page-wrapper">
+      <SectionHeader
+        title="Cybersecurity Awareness Dashboard"
+        subtitle="Track your training progress and strengthen your digital safety skills."
+      />
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <StatsCard label="Training Progress" value={`${snapshot.trainingCompletion}%`} icon={GraduationCap} color="brand" barPercent={snapshot.trainingCompletion} />
+        <StatsCard label="Quiz Average" value={`${snapshot.assessmentAvg}%`} icon={ClipboardCheck} color="green" barPercent={snapshot.assessmentAvg} />
+        <StatsCard label="Phishing Detection" value={`${snapshot.phishingDetection}%`} icon={FlaskConical} color="amber" barPercent={snapshot.phishingDetection} />
+        <div className="card p-6">
+          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-tx-muted mb-3">Risk Level</p>
+          <RiskBadge level={snapshot.risk.level} className="text-sm px-3 py-1" />
+          <p className="text-xs text-tx-muted mt-3">Awareness score: <span className="font-semibold text-tx-primary">{snapshot.score}/100</span></p>
         </div>
-        <Link 
-          to="/generator" 
-          className="h-12 px-8 bg-brand hover:bg-brand-dim text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-brand/20 flex items-center gap-2 active:scale-95"
-        >
-          <Zap size={16} fill="currentColor" />
-          Launch Simulation
-        </Link>
       </div>
 
-      {/* 2. Primary Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard 
-          label="Total Generated" 
-          value={stats?.totalGenerated ?? 0} 
-          icon={Mail} 
-          color="brand" 
-          trendValue="+12%" 
-          trend="up" 
-        />
-        <StatsCard 
-          label="Active Campaigns" 
-          value={campaigns.length} 
-          icon={Target} 
-          color="green" 
-        />
-        <StatsCard 
-          label="Critical Threats" 
-          value={stats?.severityCounts?.critical ?? 0} 
-          icon={Shield} 
-          color="red" 
-        />
-        <StatsCard 
-          label="Unique Vectors" 
-          value={Object.keys(stats?.categoryCounts || {}).length} 
-          icon={BarChart3} 
-          color="amber" 
-        />
-      </div>
-
-      {/* 3. Intelligence & Actions Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
-        
-        {/* RECENT ACTIVITY SECTION */}
-        <div className="xl:col-span-8 space-y-6">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+        {/* Learning journey */}
+        <div className="xl:col-span-8 space-y-4">
           <div className="flex items-center justify-between px-1">
-            <h3 className="text-xs font-bold uppercase tracking-[0.25em] text-tx-muted flex items-center gap-2">
-              <Activity size={14} className="text-brand" /> Recent Intelligence
-            </h3>
-            {/* LINK FIXED: Points to generator with a tab parameter query */}
-            <Link to="/generator?tab=history" className="text-[10px] font-bold text-brand hover:text-brand-dim tracking-widest flex items-center gap-1 transition-colors">
-              VIEW HISTORY <ChevronRight size={12} />
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-tx-muted">Your Learning Journey</h3>
+            <Link to="/training" className="text-[11px] font-bold text-brand hover:text-brand-dim flex items-center gap-1">
+              VIEW ALL <ChevronRight size={12} />
             </Link>
           </div>
 
-          <div className="card overflow-hidden shadow-card">
-            {history.length === 0 ? (
-              <EmptyState icon={Mail} title="No Active History" description="Generate your first AI simulation to populate intelligence data." />
-            ) : (
-              <div className="divide-y divide-surface-border/60">
-                {history.map((sim) => (
-                  <div key={sim.id} className="group flex flex-col sm:flex-row sm:items-center justify-between p-6 hover:bg-surface-overlay/30 transition-all duration-300">
-                    <div className="flex items-center gap-5 min-w-0">
-                      <div className="w-12 h-12 rounded-2xl bg-surface-overlay border border-surface-border flex items-center justify-center shrink-0 group-hover:border-brand/50 transition-colors shadow-inner">
-                        <Mail className="w-5 h-5 text-tx-muted group-hover:text-brand transition-colors" />
-                      </div>
-                      <div className="truncate">
-                        <p className="text-sm font-bold text-tx-primary truncate transition-colors">{sim.subject}</p>
-                        <p className="text-[11px] text-tx-muted mt-1 font-medium">{sim.params?.category} <span className="text-surface-border mx-1">•</span> {sim.sender?.email}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between sm:justify-end gap-8 mt-4 sm:mt-0 border-t sm:border-none pt-4 sm:pt-0 border-surface-border/40">
-                      <div className="flex items-center gap-2 text-[10px] text-tx-muted font-mono font-bold">
-                        <Clock size={12} /> {formatDate(sim.createdAt)}
-                      </div>
-                      <SeverityBadge severity={sim.params?.severity} />
-                    </div>
+          <div className="card divide-y divide-surface-border overflow-hidden">
+            {TRAINING_MODULES.map((mod) => {
+              const percent = moduleProgress[mod.id]?.percent ?? 0;
+              const status = moduleStatus(percent);
+              const Icon = resolveIcon(mod.icon);
+              return (
+                <Link
+                  key={mod.id}
+                  to={`/training/${mod.id}`}
+                  className="flex items-center gap-4 p-4 hover:bg-surface-overlay/40 transition-colors"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-surface-overlay border border-surface-border flex items-center justify-center shrink-0">
+                    <Icon className="w-4.5 h-4.5 text-brand" />
                   </div>
-                ))}
-              </div>
-            )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-tx-primary truncate">{mod.title}</p>
+                      <span className={`text-[11px] font-bold shrink-0 ${STATUS_META[status].color}`}>
+                        {status === 'in_progress' ? `${percent}%` : STATUS_META[status].label}
+                      </span>
+                    </div>
+                    <ProgressBar percent={percent} className="mt-2" height="h-1.5" />
+                  </div>
+                </Link>
+              );
+            })}
           </div>
+
+          {/* Recommended next step */}
+          {nextModule && (
+            <div className="bg-brand/5 border border-brand/15 rounded-2xl p-5 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center text-brand shrink-0">
+                <ArrowRight className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs font-bold text-brand uppercase tracking-widest">Recommended Next Step</p>
+                <p className="text-sm text-tx-primary font-semibold mt-0.5">
+                  Continue {nextModule.title} Training
+                </p>
+              </div>
+              <Link to={`/training/${nextModule.id}`} className="btn-primary shrink-0">
+                Continue
+              </Link>
+            </div>
+          )}
         </div>
 
-        {/* SIDEBAR: SHORTCUTS & METRICS */}
-        <div className="xl:col-span-4 space-y-10">
-          
-          {/* Executive Shortcuts */}
-          <div className="space-y-6">
-            <h3 className="text-xs font-bold uppercase tracking-[0.25em] text-tx-muted px-1">Tactical Shortcuts</h3>
-            <div className="grid grid-cols-1 gap-3">
+        {/* Sidebar: activity + quick actions */}
+        <div className="xl:col-span-4 space-y-8">
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-tx-muted px-1">Quick Actions</h3>
+            <div className="grid grid-cols-1 gap-2.5">
               {[
-                { to: '/generator', icon: Mail, label: 'Generator', sub: 'AI Simulation Engine' },
-                { to: '/campaigns', icon: Target, label: 'Campaigns', sub: 'Strategic Multi-Phase' },
-                { to: '/education', icon: Shield, label: 'Education', sub: 'Threat Intelligence' },
+                { to: '/training', icon: GraduationCap, label: 'Continue Training' },
+                { to: '/assessments', icon: ClipboardCheck, label: 'Take Assessment' },
+                { to: '/simulation', icon: FlaskConical, label: 'Start Phishing Simulation' },
+                { to: '/progress', icon: TrendingUp, label: 'View My Progress' },
               ].map((item) => (
-                <Link 
-                  key={item.to} 
-                  to={item.to} 
-                  className="flex items-center gap-4 p-4 rounded-2xl bg-surface-raised border border-surface-border hover:border-brand/40 hover:bg-brand/5 transition-all group shadow-sm"
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className="flex items-center gap-3 p-3.5 rounded-xl bg-surface-raised border border-surface-border hover:border-brand/40 hover:bg-brand/5 transition-all group"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-surface-overlay border border-surface-border flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
-                    <item.icon className="w-5 h-5 text-tx-muted group-hover:text-brand" />
+                  <div className="w-9 h-9 rounded-lg bg-surface-overlay border border-surface-border flex items-center justify-center group-hover:bg-brand/10 transition-colors">
+                    <item.icon className="w-4 h-4 text-tx-muted group-hover:text-brand" />
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-tx-primary group-hover:text-brand">{item.label}</p>
-                    <p className="text-[10px] text-tx-muted uppercase font-bold tracking-tighter">{item.sub}</p>
-                  </div>
-                  <ChevronRight className="ml-auto w-4 h-4 text-tx-muted group-hover:text-brand group-hover:translate-x-1 transition-all" />
+                  <p className="text-sm font-semibold text-tx-primary group-hover:text-brand">{item.label}</p>
+                  <ChevronRight className="ml-auto w-4 h-4 text-tx-muted group-hover:text-brand group-hover:translate-x-0.5 transition-all" />
                 </Link>
               ))}
             </div>
           </div>
 
-          {/* Vector Metrics */}
-          {stats?.categoryCounts && (
-            <div className="card p-6 shadow-card">
-              <h3 className="text-xs font-bold uppercase tracking-[0.25em] text-tx-muted mb-6">Top Threat Vectors</h3>
-              <div className="space-y-5">
-                {Object.entries(stats.categoryCounts)
-                  .sort((a, b) => b[1] - a[1])
-                  .slice(0, 4)
-                  .map(([cat, count]) => (
-                    <div key={cat} className="group space-y-2">
-                      <div className="flex justify-between text-[11px] font-bold">
-                        <span className="text-tx-muted uppercase tracking-tight group-hover:text-tx-secondary transition-colors">{cat}</span>
-                        <span className="text-brand font-mono">{count}</span>
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-tx-muted px-1">Recent Activity</h3>
+            {activity.length === 0 ? (
+              <EmptyState icon={Clock} title="No activity yet" description="Complete a lesson or quiz to see your activity here." />
+            ) : (
+              <div className="card divide-y divide-surface-border overflow-hidden">
+                {activity.map((a) => {
+                  const Icon = resolveIcon(a.icon);
+                  return (
+                    <div key={a.id} className="flex items-start gap-3 p-3.5">
+                      <div className="w-7 h-7 rounded-lg bg-brand/10 border border-brand/20 flex items-center justify-center text-brand shrink-0 mt-0.5">
+                        <Icon className="w-3.5 h-3.5" />
                       </div>
-                      <div className="h-1.5 w-full bg-surface-overlay rounded-full overflow-hidden border border-surface-border/50">
-                        <div 
-                          className="h-full bg-brand rounded-full transition-all duration-1000 shadow-[0_0_8px_rgba(37,99,235,0.2)]"
-                          style={{ width: `${(count / stats.totalGenerated) * 100}%` }}
-                        />
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-tx-primary leading-snug">{a.text}</p>
+                        <p className="text-[10px] text-tx-muted mt-0.5">{timeAgo(a.timestamp)}</p>
                       </div>
                     </div>
-                  ))}
+                  );
+                })}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
-      {/* 4. Compliance Banner */}
-      <div className="bg-brand/5 border border-brand/10 rounded-3xl p-6 flex flex-col md:flex-row items-center gap-6 shadow-sm">
-        <div className="w-14 h-14 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center text-brand shrink-0">
-          <ShieldCheck size={28} />
+      {/* Compliance banner */}
+      <div className="bg-brand/5 border border-brand/10 rounded-2xl p-5 flex flex-col md:flex-row items-center gap-5">
+        <div className="w-12 h-12 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center text-brand shrink-0">
+          <ShieldAlert size={22} />
         </div>
-        <div className="space-y-1 text-center md:text-left">
-          <p className="text-xs font-bold text-brand uppercase tracking-widest">Policy & Compliance</p>
-          <p className="text-[11px] text-tx-secondary leading-relaxed font-medium">
-            This platform is strictly for <strong className="text-tx-primary">Authorized Cybersecurity Awareness Training</strong>. 
-            The PhishSim simulation engine leverages Generative AI to model fictional social engineering tactics for educational defense. 
-            Unauthorized offensive utilization is strictly prohibited and violates platform policy.
+        <div className="text-center md:text-left">
+          <p className="text-xs font-bold text-brand uppercase tracking-widest">Educational Platform</p>
+          <p className="text-[11px] text-tx-secondary leading-relaxed font-medium mt-1">
+            SentriLearn is a controlled cybersecurity awareness training environment. All simulated phishing content is fictional and used strictly for educational defense training.
           </p>
         </div>
       </div>

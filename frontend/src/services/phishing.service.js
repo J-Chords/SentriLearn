@@ -18,14 +18,3 @@ export const PhishingService = {
   clearAllHistory: () => api.delete('/phishing/history'),
 };
 
-export const CampaignService = {
-  createCampaign: (params) => api.post('/campaigns', params),
-  getAllCampaigns: () => api.get('/campaigns'),
-  getCampaignById: (id) => api.get(`/campaigns/${id}`),
-  deleteCampaign: (id) => api.delete(`/campaigns/${id}`),
-};
-
-export const MetaService = {
-  getMetadata: () => api.get('/meta'),
-  healthCheck: () => api.get('/health'),
-};

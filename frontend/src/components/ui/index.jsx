@@ -2,6 +2,7 @@
 // REUSABLE UI COMPONENTS
 // =============================================
 import { clsx } from 'clsx';
+import { riskBadgeVariant } from '../../utils/riskScore.js';
 
 export function Badge({ children, variant = 'default', className = '' }) {
   const variants = {
@@ -124,6 +125,32 @@ export function InfoRow({ label, value }) {
       <span className="text-xs text-tx-muted font-medium">{label}</span>
       <span className="text-xs font-semibold text-tx-primary">{value}</span>
     </div>
+  );
+}
+
+export function ProgressBar({ percent = 0, color = 'brand', className = '', height = 'h-2' }) {
+  const colorMap = {
+    brand: 'bg-brand',
+    green: 'bg-emerald-500',
+    amber: 'bg-amber-500',
+    red: 'bg-rose-500',
+  };
+  return (
+    <div className={clsx('w-full rounded-full bg-surface-overlay overflow-hidden', height, className)}>
+      <div
+        className={clsx('h-full rounded-full transition-all duration-700', colorMap[color] || colorMap.brand)}
+        style={{ width: `${Math.max(0, Math.min(100, percent))}%` }}
+      />
+    </div>
+  );
+}
+
+export function RiskBadge({ level, className = '' }) {
+  const labels = { low: 'Low Risk', medium: 'Medium Risk', high: 'High Risk' };
+  return (
+    <Badge variant={riskBadgeVariant(level)} className={className}>
+      {labels[level] || 'Medium Risk'}
+    </Badge>
   );
 }
 

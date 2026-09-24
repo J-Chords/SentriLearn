@@ -1,20 +1,20 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-const ThemeContext = createContext({ theme: 'dark', toggleTheme: () => {} });
+const ThemeContext = createContext({ theme: 'light', toggleTheme: () => {} });
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
     try {
-      return localStorage.getItem('phishsim-theme') || 'dark';
+      return localStorage.getItem('sentrilearn:theme') || 'light';
     } catch {
-      return 'dark';
+      return 'light';
     }
   });
 
   useEffect(() => {
     const root = document.documentElement;
     root.classList.toggle('dark', theme === 'dark');
-    try { localStorage.setItem('phishsim-theme', theme); } catch {}
+    try { localStorage.setItem('sentrilearn:theme', theme); } catch {}
   }, [theme]);
 
   const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'));

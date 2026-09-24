@@ -1,73 +1,35 @@
 // =============================================
-// FRONTEND CONSTANTS
+// PHISHING SIMULATION LAB — SCENARIO CONSTANTS
+//
+// These map onto the existing backend contract
+// (category / target / impersonation / severity / urgency / tone)
+// without requiring any backend changes.
 // =============================================
 
-export const PHISHING_CATEGORIES = [
-  'Credential Harvesting',
-  'Fake Bank Alert',
-  'HR / Recruitment',
-  'IT Security Alert',
-  'Invoice / Payment Scam',
-  'Fake Delivery Notification',
-  'Account Suspension Warning',
-  'Microsoft / Google Impersonation',
-  'CEO Fraud / BEC',
-  'Fake Survey / Prize',
+export const SCENARIO_TYPES = [
+  'Account Verification',
+  'Password Expiry',
+  'Scholarship Notification',
+  'Shared Document',
+  'HR / Payroll Update',
 ];
 
-export const SEVERITY_LEVELS = ['low', 'medium', 'high', 'critical'];
+export const TARGET_CONTEXTS = ['University', 'Workplace', 'Personal'];
 
-export const TONE_OPTIONS = [
-  'professional',
-  'urgent',
-  'friendly',
-  'authoritative',
-  'casual',
-  'threatening',
-];
+export const DIFFICULTY_LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
 
-export const ATTACK_VECTORS = [
-  'Email Phishing',
-  'Spear Phishing',
-  'Whaling',
-  'Smishing (SMS)',
-  'Vishing (Voice)',
-  'Clone Phishing',
-];
-
-export const TARGET_SCENARIOS = [
-  'Corporate Employee',
-  'Finance Department',
-  'IT Administrator',
-  'C-Suite Executive',
-  'HR Personnel',
-  'Remote Worker',
-  'New Hire',
-  'Customer / End User',
-];
-
-export const IMPERSONATION_TYPES = [
-  'Microsoft',
-  'Google',
-  'Bank / Financial Institution',
-  'Company CEO',
-  'IT Support Team',
-  'HR Department',
-  'Courier / Delivery Service',
-  'Government Agency',
-  'Cloud Storage Provider',
-];
-
-export const SEVERITY_COLORS = {
-  low: 'severity-low',
-  medium: 'severity-medium',
-  high: 'severity-high',
-  critical: 'severity-critical',
+/** Scenario type → who the simulation impersonates (backend `impersonation` field). */
+export const IMPERSONATION_BY_SCENARIO = {
+  'Account Verification': 'Microsoft / Google',
+  'Password Expiry': 'IT Support Team',
+  'Scholarship Notification': 'University Financial Aid Office',
+  'Shared Document': 'Cloud Storage Provider',
+  'HR / Payroll Update': 'HR Department',
 };
 
-export const NAV_ITEMS = [
-  { path: '/', label: 'Dashboard', icon: 'LayoutDashboard' },
-  { path: '/generator', label: 'Email Generator', icon: 'Mail' },
-  { path: '/campaigns', label: 'Campaigns', icon: 'Target' },
-  { path: '/education', label: 'Education Hub', icon: 'GraduationCap' },
-];
+/** Difficulty → backend severity/urgency/tone parameters. */
+export const DIFFICULTY_TO_PARAMS = {
+  Beginner: { severity: 'low', urgency: 4, tone: 'friendly' },
+  Intermediate: { severity: 'medium', urgency: 6, tone: 'professional' },
+  Advanced: { severity: 'high', urgency: 9, tone: 'urgent' },
+};
