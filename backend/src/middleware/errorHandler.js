@@ -14,6 +14,10 @@ export const errorHandler = (err, req, res, next) => {
     return sendError(res, 'AI response parsing failed. Please try again.', 422);
   }
 
+  if (err.code === 'EBADCSRFTOKEN') {
+    return sendError(res, 'Your session security token has expired. Please refresh the page and try again.', 403);
+  }
+
   // Google API errors
   if (err.message?.includes('API_KEY') || err.message?.includes('PERMISSION_DENIED')) {
     return sendError(res, 'AI provider authentication failed. Check your API key.', 503);

@@ -15,7 +15,7 @@ const BAR_COLOR_MAP = {
   red: 'bg-rose-500',
 };
 
-export function StatsCard({ label, value, icon: Icon, trendValue, trend, color = 'brand', barPercent }) {
+export function StatsCard({ label, value, icon: Icon, trendValue, trend, color = 'brand', barPercent, unavailable = false }) {
   const isPositive = trend === 'up';
 
   return (
@@ -24,7 +24,10 @@ export function StatsCard({ label, value, icon: Icon, trendValue, trend, color =
         <div className="space-y-3">
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-tx-muted">{label}</p>
           <div className="flex items-baseline gap-2">
-            <h3 className="text-3xl font-extrabold tracking-tight text-tx-primary leading-none">
+            <h3 className={clsx(
+              'font-extrabold tracking-tight text-tx-primary leading-none',
+              unavailable ? 'text-base text-tx-muted font-semibold' : 'text-3xl'
+            )}>
               {value ?? '—'}
             </h3>
             {trendValue && (

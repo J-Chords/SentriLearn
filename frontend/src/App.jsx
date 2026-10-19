@@ -18,15 +18,19 @@ import Campaigns from './pages/Campaigns.jsx';
 import Report from './pages/Report.jsx';
 import Progress from './pages/Progress.jsx';
 import Admin from './pages/Admin.jsx';
+import AdminReports from './pages/AdminReports.jsx';
+import AdminUsers from './pages/AdminUsers.jsx';
 
 function RequireAuth({ children }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
   return <Layout>{children}</Layout>;
 }
 
 function RequireAdmin({ children }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== 'admin') return <Navigate to="/dashboard" replace />;
   return <Layout>{children}</Layout>;
@@ -48,6 +52,8 @@ function AppRoutes() {
       <Route path="/report" element={<RequireAuth><Report /></RequireAuth>} />
       <Route path="/progress" element={<RequireAuth><Progress /></RequireAuth>} />
       <Route path="/admin" element={<RequireAdmin><Admin /></RequireAdmin>} />
+      <Route path="/admin/reports" element={<RequireAdmin><AdminReports /></RequireAdmin>} />
+      <Route path="/admin/users" element={<RequireAdmin><AdminUsers /></RequireAdmin>} />
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

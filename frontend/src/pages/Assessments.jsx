@@ -3,20 +3,21 @@
 // =============================================
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ClipboardCheck, ChevronRight, ListChecks } from 'lucide-react';
+import { ChevronRight, ListChecks, Loader } from 'lucide-react';
 import { SectionHeader, Badge } from '../components/ui/index.jsx';
-import { ASSESSMENTS } from '../data/assessments.js';
 import { resolveIcon } from '../utils/iconMap.js';
-import { getAssessmentResults, seedDefaults } from '../utils/progressStore.js';
+import { AssessmentService } from '../services/assessments.service.js';
 import { awarenessLevelLabel } from '../utils/riskScore.js';
 
 export default function Assessments() {
-  const [results, setResults] = useState({});
+  const [assessments, setAssessments] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    seedDefaults();
-    setResults(getAssessmentResults());
+    AssessmentService.list().then((res) => setAssessments(res.data.assessments)).finally(() => setLoading(false));
   }, []);
+
+  if (loading) return <div className="flex items-center justify-center py-24"><Loader className="w-6 h-6 text-brand animate-spin" /></div>;
 
   return (
     <div className="page-wrapper">
@@ -26,9 +27,9 @@ export default function Assessments() {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {ASSESSMENTS.map((a) => {
+        {assessments.map((a) => {
           const Icon = resolveIcon(a.icon);
-          const result = results[a.id];
+          const result = a.latestAttempt;
 
           return (
             <div key={a.id} className="card p-6 flex flex-col">
@@ -46,7 +47,7 @@ export default function Assessments() {
               </div>
 
               <div className="flex items-center gap-4 mt-4 text-xs text-tx-muted font-medium">
-                <span className="flex items-center gap-1.5"><ListChecks className="w-3.5 h-3.5" />{a.questions.length} questions</span>
+                <span className="flex items-center gap-1.5"><ListChecks className="w-3.5 h-3.5" />{a.questionCount} questions</span>
                 {result && <span>Awareness: <strong className="text-tx-primary">{awarenessLevelLabel(result.percentage)}</strong></span>}
               </div>
 

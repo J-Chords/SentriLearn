@@ -1,136 +1,123 @@
 // =============================================
-// PHISHING GENERATOR SERVICE
+// AI-GENERATED PRACTICE SERVICE (Gemini)
+//
+// Scenario history is persisted to the database, owned by the
+// user who generated it. History, and deletion, are owner-scoped.
+// This content is explicitly labeled "AI-generated practice" in
+// the UI and does NOT feed the scored awareness metrics — the
+// model's own red flag list is unreviewed output, not an
+// authoritative answer key.
 // =============================================
 import { v4 as uuidv4 } from 'uuid';
 import { getAIService } from '../ai/ai.service.js';
 import { PromptManager } from '../ai/prompt.manager.js';
+import { getDb } from '../../db/connection.js';
 
 class PhishingGeneratorService {
   #aiService;
-  #generationHistory = [];
 
   constructor() {
     this.#aiService = getAIService();
   }
 
-  /**
-   * Generate a phishing email simulation
-   * @param {object} params
-   * @returns {Promise<object>}
-   		*/
-  async generateEmail(params) {
+  async generateEmail(userId, params) {
     const {
-      category,
-      target,
-      severity = 'medium',
-      impersonation,
-      urgency = 7,
-      tone = 'professional',
+      category, target, severity = 'medium', impersonation, urgency = 7, tone = 'professional',
     } = params;
 
-    const prompt = PromptManager.buildPhishingEmailPrompt({
-      category,
-      target,
-      severity,
-      impersonation,
-      urgency,
-      tone,
-    });
-
+    const prompt = PromptManager.buildPhishingEmailPrompt({ category, target, severity, impersonation, urgency, tone });
     const aiResult = await this.#aiService.generateStructured(prompt);
 
-    const simulation = {
-      id: uuidv4(),
-      createdAt: new Date().toISOString(),
-      params: { category, target, severity, impersonation, urgency, tone },
-      ...aiResult,
-    };
+    const id = uuidv4();
+    const createdAt = new Date().toISOString();
+    const db = getDb();
+    db.prepare(`
+      INSERT INTO ai_scenarios (
+        id, user_id, category, target_context, impersonation, severity, urgency, tone,
+        subject, sender_name, sender_email, body_html, red_flags_json, tactics_summary,
+        severity_score, manipulation_techniques_json, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id, userId, category, target, impersonation, severity, urgency, tone,
+      aiResult.subject, aiResult.sender?.name, aiResult.sender?.email, aiResult.body,
+      JSON.stringify(aiResult.redFlags || []), aiResult.tacticsSummary || null,
+      aiResult.severityScore ?? urgency, JSON.stringify(aiResult.manipulationTechniques || []), createdAt
+    );
 
-    this.#generationHistory.unshift(simulation);
-    if (this.#generationHistory.length > 50) {
-      this.#generationHistory = this.#generationHistory.slice(0, 50);
-    }
-
-    return simulation;
+    return this.getById(userId, id);
   }
 
-  /**
-   * Generate educational explanation for a phishing simulation
-   * @param {object} params
-   * @returns {Promise<object>}
-   */
   async generateExplanation(params) {
     const { emailSubject, category, tactics = [] } = params;
-
     const prompt = PromptManager.buildExplanationPrompt({ emailSubject, category, tactics });
     return this.#aiService.generateStructured(prompt);
   }
 
-  /**
-   * Generate scenario variations for a category
-   * @param {string} baseCategory
-   * @param {number} count
-   * @returns {Promise<Array>}
-   */
   async generateVariations(baseCategory, count = 4) {
     const prompt = PromptManager.buildVariationsPrompt({ baseCategory, count });
     const result = await this.#aiService.generateStructured(prompt);
     return Array.isArray(result) ? result : result.variations || [];
   }
 
-  /**
-   * Get recent generation history
-   * @returns {Array}
-   */
-  getHistory() {
-    return this.#generationHistory;
+  getHistory(userId) {
+    const db = getDb();
+    return db.prepare('SELECT * FROM ai_scenarios WHERE user_id = ? ORDER BY created_at DESC LIMIT 50').all(userId).map(toPublic);
   }
 
-  /**
-   * Remove a single targeted simulation by signature UUID
-   * @param {string} id
-   * @returns {boolean}
-   */
-  deleteHistoryById(id) {
-    const initialLength = this.#generationHistory.length;
-    this.#generationHistory = this.#generationHistory.filter((sim) => sim.id !== id);
-    return this.#generationHistory.length < initialLength;
+  getById(userId, id) {
+    const db = getDb();
+    const row = db.prepare('SELECT * FROM ai_scenarios WHERE id = ? AND user_id = ?').get(id, userId);
+    return row ? toPublic(row) : null;
   }
 
-  /**
-   * Flush the entire intelligence array repository cleanly
-   * @returns {boolean}
-   */
-  clearAllHistory() {
-    this.#generationHistory = [];
+  deleteById(userId, id) {
+    const db = getDb();
+    const info = db.prepare('DELETE FROM ai_scenarios WHERE id = ? AND user_id = ?').run(id, userId);
+    return info.changes > 0;
+  }
+
+  clearAllHistory(userId) {
+    const db = getDb();
+    db.prepare('DELETE FROM ai_scenarios WHERE user_id = ?').run(userId);
     return true;
   }
 
-  /**
-   * Get statistics about generations
-   * @returns {object}
-   */
-  getStats() {
-    const history = this.#generationHistory;
+  getStats(userId) {
+    const db = getDb();
+    const history = this.getHistory(userId);
     const categoryCounts = history.reduce((acc, sim) => {
       const cat = sim.params?.category || 'Unknown';
       acc[cat] = (acc[cat] || 0) + 1;
       return acc;
     }, {});
-
-    const severityCounts = history.reduce((acc, sim) => {
-      const sev = sim.params?.severity || 'Unknown';
-      acc[sev] = (acc[sev] || 0) + 1;
-      return acc;
-    }, {});
-
     return {
       totalGenerated: history.length,
       categoryCounts,
-      severityCounts,
       lastGeneratedAt: history[0]?.createdAt || null,
     };
   }
+}
+
+function toPublic(row) {
+  return {
+    id: row.id,
+    createdAt: row.created_at,
+    params: {
+      category: row.category,
+      target: row.target_context,
+      impersonation: row.impersonation,
+      severity: row.severity,
+      urgency: row.urgency,
+      tone: row.tone,
+    },
+    subject: row.subject,
+    sender: { name: row.sender_name, email: row.sender_email },
+    body: row.body_html,
+    redFlags: JSON.parse(row.red_flags_json || '[]'),
+    tacticsSummary: row.tactics_summary,
+    severityScore: row.severity_score,
+    manipulationTechniques: JSON.parse(row.manipulation_techniques_json || '[]'),
+  };
 }
 
 let instance = null;

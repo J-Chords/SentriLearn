@@ -16,6 +16,12 @@ frontend/dist/
 .env.local
 backend/.env
 
+# SQLite database + WAL/SHM sidecars + backups (never in Git)
+backend/data/
+
+# Locally generated demo credentials (never in Git)
+backend/local/
+
 # Local development & System debris
 .DS_Store
 Thumbs.db

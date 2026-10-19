@@ -1,47 +1,54 @@
 // =============================================
 // AI SERVICE - PROVIDER AGNOSTIC INTERFACE
+//
+// Optional by design: when no API key is configured, every method
+// throws a clean 503 rather than the provider crashing at
+// construction time. The rest of the backend never depends on this.
 // =============================================
+import { config } from '../../config/index.js';
 import { getGeminiProvider } from './providers/gemini.provider.js';
 
 class AIService {
-  #provider;
+  #provider = null;
 
   constructor() {
-    // Provider abstraction: swap Gemini for OpenAI/Claude/etc. here
-    this.#provider = getGeminiProvider();
+    if (config.ai.enabled) {
+      this.#provider = getGeminiProvider();
+    }
   }
 
-  /**
-   * Generate plain text content
-   * @param {string} prompt
-   * @returns {Promise<string>}
-   */
+  isAvailable() {
+    return this.#provider !== null;
+  }
+
+  #assertAvailable() {
+    if (!this.#provider) {
+      const err = new Error('AI-generated practice is currently unavailable — no AI provider is configured.');
+      err.statusCode = 503;
+      err.expose = true;
+      throw err;
+    }
+  }
+
   async generateText(prompt) {
+    this.#assertAvailable();
     return this.#provider.generate(prompt);
   }
 
-  /**
-   * Generate and parse structured JSON response
-   * @param {string} prompt
-   * @returns {Promise<object>}
-   */
   async generateStructured(prompt) {
+    this.#assertAvailable();
     return this.#provider.generateJSON(prompt);
   }
 
-  /**
-   * Get the current AI provider name
-   * @returns {string}
-   */
   getProviderInfo() {
     return {
       provider: 'Google Gemini',
-      model: this.#provider.getModelName(),
+      model: config.ai.geminiModel,
+      available: this.isAvailable(),
     };
   }
 }
 
-// Singleton
 let aiServiceInstance = null;
 
 const getAIService = () => {

@@ -34,7 +34,7 @@ function SelectField({ label, value, onChange, options }) {
   );
 }
 
-export function SimulationForm({ onGenerate, loading }) {
+export function SimulationForm({ onGenerate, loading, disabled = false }) {
   const [form, setForm] = useState(defaultForm);
   const update = (key) => (val) => setForm((prev) => ({ ...prev, [key]: val }));
 
@@ -53,7 +53,7 @@ export function SimulationForm({ onGenerate, loading }) {
         <SelectField label="Difficulty" value={form.difficulty} onChange={update('difficulty')} options={DIFFICULTY_LEVELS} />
       </div>
 
-      <Button onClick={() => onGenerate(form)} loading={loading} disabled={loading} className="w-full justify-center py-3 font-semibold">
+      <Button onClick={() => onGenerate(form)} loading={loading} disabled={loading || disabled} className="w-full justify-center py-3 font-semibold">
         <FlaskConical className="w-4 h-4" />
         {loading ? 'Generating Scenario…' : 'Generate Training Scenario'}
       </Button>

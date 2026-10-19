@@ -1,20 +1,14 @@
 // =============================================
-// PHISHING SERVICE - FRONTEND API LAYER
+// AI-GENERATED PRACTICE SERVICE - FRONTEND API LAYER
 // =============================================
 import api from './api.service.js';
 
 export const PhishingService = {
-  generateEmail: (params) => api.post('/phishing/generate', params),
-  generateExplanation: (params) => api.post('/phishing/explain', params),
-  getVariations: (category, count = 4) =>
-    api.get(`/phishing/variations/${encodeURIComponent(category)}?count=${count}`),
-  getHistory: () => api.get('/phishing/history'),
-  getStats: () => api.get('/phishing/stats'),
-  
-  // Surgical deletion of a targeted history item entry
-  deleteHistoryItem: (id) => api.delete(`/phishing/history/${id}`),
-  
-  // Wipes out the entire local running history log repository cache array
-  clearAllHistory: () => api.delete('/phishing/history'),
+  status: () => api.get('/ai-scenarios/status'),
+  generateEmail: (params) => api.post('/ai-scenarios/generate', params),
+  generateExplanation: (params) => api.post('/ai-scenarios/explain', params),
+  getHistory: () => api.get('/ai-scenarios/history'),
+  getStats: () => api.get('/ai-scenarios/stats'),
+  deleteHistoryItem: (id) => api.delete(`/ai-scenarios/history/${id}`),
+  clearAllHistory: () => api.delete('/ai-scenarios/history'),
 };
-

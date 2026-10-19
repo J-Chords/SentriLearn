@@ -5,8 +5,8 @@ import { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, GraduationCap, ClipboardCheck, FlaskConical,
-  TrendingUp, Target, Flag, BarChart3, ShieldCheck,
-  Sun, Moon, Menu, X, ChevronDown, LogOut, UserCircle2, RefreshCcw,
+  TrendingUp, Target, Flag, BarChart3, ShieldCheck, Inbox, Users,
+  Sun, Moon, Menu, X, ChevronDown, LogOut, UserCircle2,
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -34,6 +34,8 @@ const NAV_SECTIONS = [
     adminOnly: true,
     items: [
       { path: '/admin', label: 'Admin Analytics', icon: BarChart3, end: false },
+      { path: '/admin/users', label: 'Learner Accounts', icon: Users, end: false },
+      { path: '/admin/reports', label: 'Report Review', icon: Inbox, end: false },
     ],
   },
 ];
@@ -53,7 +55,7 @@ function ThemeToggle() {
 }
 
 function ProfileMenu() {
-  const { user, loginAs, logout } = useAuth();
+  const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const navigate = useNavigate();
@@ -67,7 +69,6 @@ function ProfileMenu() {
   }, []);
 
   if (!user) return null;
-  const otherRole = user.role === 'admin' ? 'learner' : 'admin';
 
   return (
     <div className="relative" ref={ref}>
@@ -90,16 +91,14 @@ function ProfileMenu() {
           <div className="px-4 py-3 border-b border-surface-border">
             <p className="text-xs font-semibold text-tx-primary">{user.name}</p>
             <p className="text-[11px] text-tx-muted mt-0.5">{user.email}</p>
+            {user.isDemoAccount && (
+              <span className="inline-block mt-1.5 text-[9px] font-bold uppercase tracking-wide text-brand bg-brand/10 border border-brand/20 px-1.5 py-0.5 rounded">
+                Demo account
+              </span>
+            )}
           </div>
           <button
-            onClick={() => { loginAs(otherRole); setOpen(false); navigate(otherRole === 'admin' ? '/admin' : '/dashboard'); }}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-tx-secondary hover:bg-surface-overlay hover:text-tx-primary transition-colors"
-          >
-            <RefreshCcw className="w-4 h-4" />
-            Switch to {otherRole === 'admin' ? 'Administrator' : 'Learner'} view
-          </button>
-          <button
-            onClick={() => { logout(); setOpen(false); navigate('/login'); }}
+            onClick={async () => { setOpen(false); await logout(); navigate('/login'); }}
             className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-severity-critical hover:bg-severity-critical/[0.08] transition-colors"
           >
             <LogOut className="w-4 h-4" />

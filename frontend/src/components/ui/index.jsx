@@ -145,11 +145,11 @@ export function ProgressBar({ percent = 0, color = 'brand', className = '', heig
   );
 }
 
-export function RiskBadge({ level, className = '' }) {
+export function RiskBadge({ level, label, className = '' }) {
   const labels = { low: 'Low Risk', medium: 'Medium Risk', high: 'High Risk' };
   return (
     <Badge variant={riskBadgeVariant(level)} className={className}>
-      {labels[level] || 'Medium Risk'}
+      {label || labels[level] || 'Not yet assessed'}
     </Badge>
   );
 }

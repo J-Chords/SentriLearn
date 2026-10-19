@@ -8,6 +8,7 @@ import {
   User, Clock, Tag,
 } from 'lucide-react';
 import { SeverityBadge, SeverityScore } from './SeverityBadge.jsx';
+import { SafeEmailBody } from './SafeEmailBody.jsx';
 import { Badge, Tabs } from '../ui/index.jsx';
 import { formatDate } from '../../utils/helpers.js';
 import { clsx } from 'clsx';
@@ -101,16 +102,7 @@ function EmailBodyTab({ simulation }) {
 
         {bodyExpanded && (
           <div className="p-4 bg-surface">
-            <div
-              className="text-sm text-tx-secondary leading-relaxed font-mono bg-surface-raised border border-surface-border rounded-lg p-4 max-h-80 overflow-y-auto whitespace-pre-wrap"
-              dangerouslySetInnerHTML={{
-                __html: (simulation.body || '')
-                  .replace(
-                    /\[(?:LINK|MALICIOUS_LINK)\]/g,
-                    '<span style="color:#2563eb;text-decoration:underline;cursor:not-allowed;" title="Simulated malicious link">[MALICIOUS_LINK]</span>'
-                  ),
-              }}
-            />
+            <SafeEmailBody text={simulation.body} />
           </div>
         )}
       </div>

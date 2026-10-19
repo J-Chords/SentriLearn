@@ -1,39 +1,56 @@
 // =============================================
-// DEMO AUTH CONTEXT — FRONTEND-ONLY ROLE SYSTEM
+// AUTH CONTEXT — real backend-authenticated session
 //
-// There is no real authentication backend. Signing in simply
-// stores a demo profile (Learner or Administrator) so the UI
-// can demonstrate both role-based views.
+// On mount: establish a CSRF token, then check whether a session
+// cookie from a previous visit is still valid (GET /me). No demo
+// role-switching exists here — role comes only from the server.
 // =============================================
-import { createContext, useContext, useState } from 'react';
-import { DEMO_USERS } from '../data/demoUsers.js';
-import { STORAGE_KEYS, readStorage, writeStorage, removeStorage } from '../utils/storage.js';
-import { seedDefaults } from '../utils/progressStore.js';
+import { createContext, useContext, useEffect, useState } from 'react';
+import { initCsrf } from '../services/api.service.js';
+import { AuthService } from '../services/auth.service.js';
 
 const AuthContext = createContext({
   user: null,
-  loginAs: () => {},
-  logout: () => {},
+  loading: true,
+  login: async () => {},
+  logout: async () => {},
 });
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => readStorage(STORAGE_KEYS.AUTH, null));
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const loginAs = (role) => {
-    const profile = DEMO_USERS[role];
-    if (!profile) return;
-    seedDefaults();
-    writeStorage(STORAGE_KEYS.AUTH, profile);
-    setUser(profile);
+  useEffect(() => {
+    (async () => {
+      try {
+        await initCsrf();
+        const res = await AuthService.me();
+        setUser(res.data.user);
+      } catch {
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const login = async (email, password, rememberMe) => {
+    const loggedInUser = await AuthService.login(email, password, rememberMe);
+    setUser(loggedInUser);
+    return loggedInUser;
   };
 
-  const logout = () => {
-    removeStorage(STORAGE_KEYS.AUTH);
-    setUser(null);
+  const logout = async () => {
+    try {
+      await AuthService.logout();
+    } finally {
+      setUser(null);
+      await initCsrf(); // re-establish an anonymous CSRF token for the login page
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loginAs, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
